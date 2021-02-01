@@ -295,15 +295,23 @@ void eventhandler(byte index, CANFrame *msg) {
   // set the LED according to the opcode of the received event, if the first EV equals 1
   // we use the blink() method of the LED object as an example
 
-  if (evval == 1)
+  if (msg->data[0] == OPC_ACON)
   {
-    if (msg->data[0] == OPC_ACON) {
-      Serial << F("> switching the LED on") << endl;
+    if (evval == 1)
+    {
+      Serial << F("> switching the LED blink") << endl;
       moduleLED.blink();
-    } else if (msg->data[0] == OPC_ACOF) {
-      Serial << F("> switching the LED off") << endl;
-      moduleLED.off();
     }
+    else if (evval == 0)
+    {
+      Serial << F("> switching the LED on") << endl;
+      moduleLED.on();
+    }
+  }
+  else if (msg->data[0] == OPC_ACOF)
+  {
+    Serial << F("> switching the LED off") << endl;
+    moduleLED.off();
   }
 
   return;
