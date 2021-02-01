@@ -86,6 +86,7 @@
 #include <CBUSswitch.h>             // pushbutton switch
 #include <CBUSLED.h>                // CBUS LEDs
 #include <CBUSconfig.h>             // module configuration
+#include <CBUSParams.h>             // CBUS parameters
 #include <cbusdefs.h>               // MERG CBUS constants
 
 // constants
@@ -116,11 +117,8 @@ CBUSLED moduleLED;                  // an example LED as output
 const byte MODULE_SWITCH_PIN = 8;
 const byte MODULE_LED_PIN = 7;
 
-// CBUS module parameters
-unsigned char params[21];
-
-// module name
-unsigned char mname[7] = { '1', 'I', 'N', '1', 'O', 'U', 'T' };
+// module name, max 7 characters.
+unsigned char mname[] = "1IN1OUT";
 
 // forward function declarations
 void eventhandler(byte index, byte opc);
@@ -150,30 +148,14 @@ void setupCBUS()
   printConfig();
 
   // set module parameters
-  params[0] = 20;                     //  0 num params = 10
-  params[1] = 0xa5;                   //  1 manf = MERG, 165
-  params[2] = VER_MIN;                //  2 code minor version
-  params[3] = MODULE_ID;              //  3 module id, 99 = undefined
-  params[4] = config.EE_MAX_EVENTS;   //  4 num events
-  params[5] = config.EE_NUM_EVS;      //  5 num evs per event
-  params[6] = config.EE_NUM_NVS;      //  6 num NVs
-  params[7] = VER_MAJ;                //  7 code major version
-  params[8] = 0x07;                   //  8 flags = 7, FLiM, consumer/producer
-  params[9] = 0x32;                   //  9 processor id = 50
-  params[10] = PB_CAN;                // 10 interface protocol = CAN, 1
-  params[11] = 0x00;
-  params[12] = 0x00;
-  params[13] = 0x00;
-  params[14] = 0x00;
-  params[15] = '3';
-  params[16] = '2';
-  params[17] = '8';
-  params[18] = 'P';
-  params[19] = CPUM_ATMEL;
-  params[20] = VER_BETA;
+  CBUSParams params(config);
+  params.setVersion(VER_MAJ, VER_MIN, VER_BETA);
+  params.setModuleId(MODULE_ID);
+  params.setFlags(PF_FLiM | PF_COMBI);
+  params.setProcessor(CPUM_ATMEL, 0x32, "328P");
 
   // assign to CBUS
-  CBUS.setParams(params);
+  CBUS.setParams(params.getParams());
   CBUS.setName(mname);
 
   // initialise CBUS switch and assign to CBUS
@@ -188,10 +170,7 @@ void setupCBUS()
   }
   CBUS.setSwitch(pb_switch);
 
-  // register our CBUS event handler, to receive event messages of learned events
-  CBUS.setEventHandler(eventhandler);
-
-  // set LED and switch pins and assign to CBUS
+  // set LED pins and assign to CBUS
   ledGrn.setPin(LED_GRN);
   ledYlw.setPin(LED_YLW);
   CBUS.setLEDs(ledGrn, ledYlw);
