@@ -55,16 +55,16 @@
 */
 ///////////////////////////////////////////////////////////////////////////////////
 // Pin Use map UNO:
-// Digital pin 2 (PWM)    Interupt CAN
+// Digital pin 2 ()       Interupt CAN
 // Digital pin 3 (PWM)    Green SLiM LED
-// Digital pin 4 (PWM)    Yellow FLiM LED
+// Digital pin 4 ()       Yellow FLiM LED
 // Digital pin 5 (PWM)    CBUS Switch
 // Digital pin 6 (PWM)    Not Used
-// Digital pin 7 (PWM)    Not Used
-// Digital pin 8 (PWM)    Module LED
+// Digital pin 7 ()       Not Used
+// Digital pin 8 ()       Module LED
 // Digital pin 9 (PWM)    Module Switch
-// Digital pin 10 (SS)    CS    CAN
-// Digital pin 11 (MOSI)  SI    CAN
+// Digital pin 10 (PWM,SS) CS   CAN
+// Digital pin 11 (PWM,MOSI) SI CAN
 // Digital pin 12 (MISO)  SO    CAN
 // Digital pin 13 (SCK)   Sck   CAN
 
@@ -76,7 +76,7 @@
 // Digital / Analog pin 5     Not Used
 //////////////////////////////////////////////////////////////////////////
 
-#define CANBUS8MHZ 1 // set to 0 for CANBUS module with 16MHz crystal
+#define CAN_OSC_FREQ 8000000uL
 
 // 3rd party libraries
 #include <Streaming.h>
@@ -90,13 +90,19 @@
 
 // constants
 const byte VER_MAJ = 1;                  // code major version
-const char VER_MIN = 'b';                // code minor version
+const char VER_MIN = 'c';                // code minor version
 const byte VER_BETA = 0;                 // code beta sub-version
 const byte MODULE_ID = 99;               // CBUS module type
 
 const byte LED_GRN = 3;                  // CBUS green SLiM LED pin
 const byte LED_YLW = 4;                  // CBUS yellow FLiM LED pin
 const byte SWITCH0 = 5;                  // CBUS push button switch pin
+
+const byte CAN_INT_PIN = 2;  // Only pin 2 and 3 support interrupts
+const byte CAN_CS_PIN = 10;
+const byte CAN_SI_PIN = 11;  // Cannot be changed
+const byte CAN_SO_PIN = 12;  // Cannot be changed
+const byte CAN_SCK_PIN = 13;  // Cannot be changed
 
 // CBUS objects
 CBUS2515 CBUS;                      // CBUS object
@@ -107,6 +113,8 @@ CBUSSwitch pb_switch;               // switch object
 // module objects
 CBUSSwitch moduleSwitch;            // an example switch as input
 CBUSLED moduleLED;                  // an example LED as output
+const byte MODULE_SWITCH_PIN = 8;
+const byte MODULE_LED_PIN = 7;
 
 // CBUS module parameters
 unsigned char params[21];
@@ -171,7 +179,7 @@ void setup() {
   CBUS.setParams(params);
   CBUS.setName(mname);
 
-  // initialise CBUS switch
+  // initialise CBUS switch and assign to CBUS
   pb_switch.setPin(SWITCH0, LOW);
 
   // module reset - if switch is depressed at startup and module is in SLiM mode
@@ -196,19 +204,15 @@ void setup() {
 
   // configure and start CAN bus and CBUS message processing
   CBUS.setNumBuffers(2);         // more buffers = more memory used, fewer = less
-#if CANBUS8MHZ
-  CBUS.setOscFreq(8000000UL);   // select the crystal frequency of the CAN module to 8MHz
-#else
-  CBUS.setOscFreq(16000000UL);   // select the crystal frequency of the CAN module to 16Mhz
-#endif
-  CBUS.setPins(10, 2);           // select pins for CAN bus CE and interrupt connections
+  CBUS.setOscFreq(CAN_OSC_FREQ);   // select the crystal frequency of the CAN module
+  CBUS.setPins(CAN_CS_PIN, CAN_INT_PIN);           // select pins for CAN bus CE and interrupt connections
   CBUS.begin();
 
   // configure the module switch, attached to pin 9, active low
-  moduleSwitch.setPin(9, LOW);
+  moduleSwitch.setPin(MODULE_SWITCH_PIN, LOW);
 
   // configure the module LED, attached to pin 8 via a 1K resistor
-  moduleLED.setPin(8);
+  moduleLED.setPin(MODULE_LED_PIN);
 
   // end of setup
   Serial << F("> ready") << endl << endl;
