@@ -64,9 +64,9 @@
 // Digital pin 8 ()       Module LED
 // Digital pin 9 (PWM)    Module Switch
 // Digital pin 10 (PWM,SS) CS   CAN
-// Digital pin 11 (PWM,MOSI) SI CAN
-// Digital pin 12 (MISO)  SO    CAN
-// Digital pin 13 (SCK)   Sck   CAN
+// Digital pin 11 (PWM,MOSI) SI CAN   ICSP-4
+// Digital pin 12 (MISO)  SO    CAN   ICSP-1
+// Digital pin 13 (SCK)   Sck   CAN   ICSP-3
 
 // Digital / Analog pin 0     Not Used
 // Digital / Analog pin 1     Not Used
@@ -126,14 +126,11 @@ unsigned char mname[7] = { '1', 'I', 'N', '1', 'O', 'U', 'T' };
 void eventhandler(byte index, byte opc);
 
 //
-/// setup - runs once at power on
+/// setup CBUS - runs once at power on from setup()
 //
 
-void setup() {
-
-  Serial.begin (115200);
-  Serial << endl << endl << F("> ** CBUS 1 in 1 out v1 ** ") << __FILE__ << endl;
-
+void setupCBUS()
+{
   // set config layout parameters
   config.EE_NVS_START = 10;
   config.EE_NUM_NVS = 10;
@@ -189,6 +186,7 @@ void setup() {
     Serial << F("> switch was pressed at startup in SLiM mode") << endl;
     config.resetModule(ledGrn, ledYlw, pb_switch);
   }
+  CBUS.setSwitch(pb_switch);
 
   // register our CBUS event handler, to receive event messages of learned events
   CBUS.setEventHandler(eventhandler);
@@ -197,7 +195,9 @@ void setup() {
   ledGrn.setPin(LED_GRN);
   ledYlw.setPin(LED_YLW);
   CBUS.setLEDs(ledGrn, ledYlw);
-  CBUS.setSwitch(pb_switch);
+
+  // register our CBUS event handler, to receive event messages of learned events
+  CBUS.setEventHandler(eventhandler);
 
   // set CBUS LEDs to indicate mode
   CBUS.indicateMode(config.FLiM);
@@ -207,6 +207,18 @@ void setup() {
   CBUS.setOscFreq(CAN_OSC_FREQ);   // select the crystal frequency of the CAN module
   CBUS.setPins(CAN_CS_PIN, CAN_INT_PIN);           // select pins for CAN bus CE and interrupt connections
   CBUS.begin();
+}
+
+//
+/// setup - runs once at power on
+//
+
+void setup() {
+
+  Serial.begin (115200);
+  Serial << endl << endl << F("> ** CBUS 1 in 1 out v1 ** ") << __FILE__ << endl;
+
+  setupCBUS();
 
   // configure the module switch, attached to pin 9, active low
   moduleSwitch.setPin(MODULE_SWITCH_PIN, LOW);
@@ -243,25 +255,28 @@ void loop() {
   moduleSwitch.run();
   moduleLED.run();
 
-  //
-  /// test for switch input
-  /// as an example, it must be have been pressed or released for at least half a second
-  /// then send a long CBUS event with opcode ACON for on and ACOF for off
-  /// event number (EN) is 1
+  processModuleSwitchChange();
 
-  /// you can just watch for this event in FCU or JMRI, or teach it to another CBUS consumer module
+  // Serial << "Time: " << millis() << endl;
   //
+  /// bottom of loop()
+  //
+}
 
+//
+/// test for switch input
+/// as an example, it must be have been pressed or released for at least half a second
+/// then send a long CBUS event with opcode ACON for on and ACOF for off
+/// event number (EN) is 1
+
+/// you can just watch for this event in FCU or JMRI, or teach it to another CBUS consumer module
+//
+void processModuleSwitchChange()
+{
   if (moduleSwitch.stateChanged()) 
   {
-   
-      Serial << F(">Button state change detected") << endl;
-      if (moduleSwitch.isPressed()) {
-        Serial << F("> button pressed") << endl;
-      } else {
-        Serial << F("> button released") << endl;
-        
-      }
+    Serial << F(">Button state change detected - button ")
+           << (moduleSwitch.isPressed() ? F("pressed") : F("released")) << endl;
     CANFrame msg;
     msg.id = config.CANID;
     msg.len = 5;
@@ -277,10 +292,6 @@ void loop() {
       Serial << F("> error sending CBUS message") << endl;
     }
   }
-
-  //
-  /// bottom of loop()
-  //
 }
 
 //
@@ -420,7 +431,8 @@ void processSerialInput(void) {
         Serial << F("  --------------------") << endl;
 
         for (byte j = 1; j <= config.EE_NUM_NVS; j++) {
-          sprintf(msgstr, " - %02d : %3hd | 0x%02hx", j, config.readNV(j), config.readNV(j));
+          byte v = config.readNV(j);
+          sprintf(msgstr, " - %02d : %3hd | 0x%02hx", j, v, v);
           Serial << msgstr << endl;
         }
 
