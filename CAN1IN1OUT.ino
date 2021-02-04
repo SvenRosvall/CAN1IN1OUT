@@ -1,7 +1,11 @@
+// Modified by Sven Rosvall (M3777)
+/**************************************************************************************
+  Version 1c
+  Simplified setup.
+  Broke out functions from setup() and loop() functions to make them small.
+  The new functions are concerned with only one thing.
+*************************************************************************************/
 
-//
-///
-//
 // Modified by Martin Da Costa (M6223)
 /**************************************************************************************
   Version 1b
@@ -60,9 +64,9 @@
 // Digital pin 4 ()       Yellow FLiM LED
 // Digital pin 5 (PWM)    CBUS Switch
 // Digital pin 6 (PWM)    Not Used
-// Digital pin 7 ()       Not Used
-// Digital pin 8 ()       Module LED
-// Digital pin 9 (PWM)    Module Switch
+// Digital pin 7 ()       Module LED
+// Digital pin 8 ()       Module Switch
+// Digital pin 9 (PWM)    Not Used
 // Digital pin 10 (PWM,SS) CS   CAN
 // Digital pin 11 (PWM,MOSI) SI CAN   ICSP-4
 // Digital pin 12 (MISO)  SO    CAN   ICSP-1
@@ -76,7 +80,6 @@
 // Digital / Analog pin 5     Not Used
 //////////////////////////////////////////////////////////////////////////
 
-#define CAN_OSC_FREQ 8000000uL
 
 // 3rd party libraries
 #include <Streaming.h>
@@ -95,6 +98,8 @@ const char VER_MIN = 'c';                // code minor version
 const byte VER_BETA = 0;                 // code beta sub-version
 const byte MODULE_ID = 99;               // CBUS module type
 
+const byte CAN_OSC_FREQ = 8000000uL;     // Oscillator frequency on the CAN2515 board
+
 const byte LED_GRN = 3;                  // CBUS green SLiM LED pin
 const byte LED_YLW = 4;                  // CBUS yellow FLiM LED pin
 const byte SWITCH0 = 5;                  // CBUS push button switch pin
@@ -105,6 +110,10 @@ const byte CAN_SI_PIN = 11;  // Cannot be changed
 const byte CAN_SO_PIN = 12;  // Cannot be changed
 const byte CAN_SCK_PIN = 13;  // Cannot be changed
 
+// 1IN1OUT module pins
+const byte MODULE_LED_PIN = 7;
+const byte MODULE_SWITCH_PIN = 8;
+
 // CBUS objects
 CBUS2515 CBUS;                      // CBUS object
 CBUSConfig config;                  // configuration object
@@ -114,8 +123,6 @@ CBUSSwitch pb_switch;               // switch object
 // module objects
 CBUSSwitch moduleSwitch;            // an example switch as input
 CBUSLED moduleLED;                  // an example LED as output
-const byte MODULE_SWITCH_PIN = 8;
-const byte MODULE_LED_PIN = 7;
 
 // module name, max 7 characters.
 unsigned char mname[] = "1IN1OUT";
@@ -160,17 +167,16 @@ void setupCBUS()
 
   // initialise CBUS switch and assign to CBUS
   pb_switch.setPin(SWITCH0, LOW);
+  pb_switch.run();
+  CBUS.setSwitch(pb_switch);
 
   // module reset - if switch is depressed at startup and module is in SLiM mode
-  pb_switch.run();
-
   if (pb_switch.isPressed() && !config.FLiM) {
     Serial << F("> switch was pressed at startup in SLiM mode") << endl;
     config.resetModule(ledGrn, ledYlw, pb_switch);
   }
-  CBUS.setSwitch(pb_switch);
 
-  // set LED pins and assign to CBUS
+  // set CBUS LED pins and assign to CBUS
   ledGrn.setPin(LED_GRN);
   ledYlw.setPin(LED_YLW);
   CBUS.setLEDs(ledGrn, ledYlw);
@@ -184,7 +190,7 @@ void setupCBUS()
   // configure and start CAN bus and CBUS message processing
   CBUS.setNumBuffers(2);         // more buffers = more memory used, fewer = less
   CBUS.setOscFreq(CAN_OSC_FREQ);   // select the crystal frequency of the CAN module
-  CBUS.setPins(CAN_CS_PIN, CAN_INT_PIN);           // select pins for CAN bus CE and interrupt connections
+  CBUS.setPins(CAN_CS_PIN, CAN_INT_PIN); // select pins for CAN bus CE and interrupt connections
   CBUS.begin();
 }
 
@@ -192,17 +198,17 @@ void setupCBUS()
 /// setup - runs once at power on
 //
 
-void setup() {
-
+void setup()
+{
   Serial.begin (115200);
   Serial << endl << endl << F("> ** CBUS 1 in 1 out v1 ** ") << __FILE__ << endl;
 
   setupCBUS();
 
-  // configure the module switch, attached to pin 9, active low
+  // configure the module switch, active low
   moduleSwitch.setPin(MODULE_SWITCH_PIN, LOW);
 
-  // configure the module LED, attached to pin 8 via a 1K resistor
+  // configure the module LED
   moduleLED.setPin(MODULE_LED_PIN);
 
   // end of setup
@@ -213,33 +219,22 @@ void setup() {
 /// loop - runs forever
 //
 
-void loop() {
-
-  //
-  /// do CBUS message, switch and LED processing
-  //
-
+void loop() 
+{
+  // do CBUS message, switch and LED processing
   CBUS.process();
 
-  //
-  /// process console commands
-  //
-
+  // process console commands
   processSerialInput();
 
-  //
-  /// give the switch and LED code some time to run
-  //
-
+  // give the switch and LED code some time to run
   moduleSwitch.run();
   moduleLED.run();
 
+  // Check if smich changed and do any processing for this change.
   processModuleSwitchChange();
 
-  // Serial << "Time: " << millis() << endl;
-  //
-  /// bottom of loop()
-  //
+  // bottom of loop()
 }
 
 //
@@ -247,14 +242,14 @@ void loop() {
 /// as an example, it must be have been pressed or released for at least half a second
 /// then send a long CBUS event with opcode ACON for on and ACOF for off
 /// event number (EN) is 1
-
+//
 /// you can just watch for this event in FCU or JMRI, or teach it to another CBUS consumer module
 //
 void processModuleSwitchChange()
 {
   if (moduleSwitch.stateChanged()) 
   {
-    Serial << F(">Button state change detected - button ")
+    Serial << F(">Button state change detected - button ") 
            << (moduleSwitch.isPressed() ? F("pressed") : F("released")) << endl;
     CANFrame msg;
     msg.id = config.CANID;
@@ -278,10 +273,9 @@ void processModuleSwitchChange()
 /// called from the CBUS library when a learned event is received
 /// it receives the event table index and the CAN frame
 //
-
-void eventhandler(byte index, CANFrame *msg) {
-
-  // as an example, control an LED if the first EV equals 1
+void eventhandler(byte index, CANFrame *msg)
+{
+  // as an example, control an LED
 
   Serial << F("> event handler: index = ") << index << F(", opcode = 0x") << _HEX(msg->data[0]) << endl;
 
@@ -292,18 +286,16 @@ void eventhandler(byte index, CANFrame *msg) {
   byte evval = config.readEEPROM(eeaddress);
   Serial << F("> EV1 = ") << evval << endl;
 
-  // set the LED according to the opcode of the received event, if the first EV equals 1
-  // we use the blink() method of the LED object as an example
-
+  // set the LED according to the opcode of the received event and its EV
   if (msg->data[0] == OPC_ACON)
   {
     if (evval == 1)
     {
-      Serial << F("> switching the LED blink") << endl;
+      Serial << F("> switching the LED to blink") << endl;
       moduleLED.blink();
     }
     else if (evval == 0)
-    {
+    {      
       Serial << F("> switching the LED on") << endl;
       moduleLED.on();
     }
@@ -320,9 +312,8 @@ void eventhandler(byte index, CANFrame *msg) {
 //
 /// print code version config details and copyright notice
 //
-
-void printConfig(void) {
-
+void printConfig(void) 
+{
   // code version
   Serial << F("> code version = ") << VER_MAJ << VER_MIN << F(" beta ") << VER_BETA << endl;
   Serial << F("> compiled on ") << __DATE__ << F(" at ") << __TIME__ << F(", compiler ver = ") << __cplusplus << endl;
@@ -337,8 +328,8 @@ void printConfig(void) {
 /// command interpreter for serial console input
 //
 
-void processSerialInput(void) {
-  
+void processSerialInput(void) 
+{
   byte uev = 0;
   char msgstr[32], dstr[32];
 
