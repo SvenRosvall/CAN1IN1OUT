@@ -104,13 +104,14 @@ const byte LED_GRN = 3;                  // CBUS green SLiM LED pin
 const byte LED_YLW = 4;                  // CBUS yellow FLiM LED pin
 const byte SWITCH0 = 5;                  // CBUS push button switch pin
 
+// CBUS pins
 const byte CAN_INT_PIN = 2;  // Only pin 2 and 3 support interrupts
 const byte CAN_CS_PIN = 10;
 const byte CAN_SI_PIN = 11;  // Cannot be changed
 const byte CAN_SO_PIN = 12;  // Cannot be changed
 const byte CAN_SCK_PIN = 13;  // Cannot be changed
 
-// 1IN1OUT module pins
+// CAN1IN1OUT module pins
 const byte MODULE_LED_PIN = 7;
 const byte MODULE_SWITCH_PIN = 8;
 
@@ -120,7 +121,7 @@ CBUSConfig config;                  // configuration object
 CBUSLED ledGrn, ledYlw;             // LED objects
 CBUSSwitch pb_switch;               // switch object
 
-// module objects
+// CAN1IN1OUT module objects
 CBUSSwitch moduleSwitch;            // an example switch as input
 CBUSLED moduleLED;                  // an example LED as output
 
