@@ -92,6 +92,9 @@
 #include <CBUSParams.h>             // CBUS parameters
 #include <cbusdefs.h>               // MERG CBUS constants
 
+// module name, must be 7 characters, space padded.
+unsigned char mname[] = "1IN1OUT";
+
 // constants
 const byte VER_MAJ = 1;                  // code major version
 const char VER_MIN = 'c';                // code minor version
@@ -118,15 +121,12 @@ const byte MODULE_SWITCH_PIN = 8;
 // CBUS objects
 CBUS2515 CBUS;                      // CBUS object
 CBUSConfig config;                  // configuration object
-CBUSLED ledGrn, ledYlw;             // LED objects
+CBUSLED ledGrn, ledYlw;             // two LED objects
 CBUSSwitch pb_switch;               // switch object
 
 // CAN1IN1OUT module objects
 CBUSSwitch moduleSwitch;            // an example switch as input
 CBUSLED moduleLED;                  // an example LED as output
-
-// module name, max 7 characters.
-unsigned char mname[] = "1IN1OUT";
 
 // forward function declarations
 void eventhandler(byte index, byte opc);
@@ -159,11 +159,15 @@ void setupCBUS()
   params.setVersion(VER_MAJ, VER_MIN, VER_BETA);
   params.setModuleId(MODULE_ID);
   params.setFlags(PF_FLiM | PF_COMBI);
-  params.setProcessor(CPUM_ATMEL, 0x32, "328P");
 
   // assign to CBUS
   CBUS.setParams(params.getParams());
   CBUS.setName(mname);
+
+  // set CBUS LED pins and assign to CBUS
+  ledGrn.setPin(LED_GRN);
+  ledYlw.setPin(LED_YLW);
+  CBUS.setLEDs(ledGrn, ledYlw);
 
   // initialise CBUS switch and assign to CBUS
   pb_switch.setPin(SWITCH0, LOW);
@@ -175,11 +179,6 @@ void setupCBUS()
     Serial << F("> switch was pressed at startup in SLiM mode") << endl;
     config.resetModule(ledGrn, ledYlw, pb_switch);
   }
-
-  // set CBUS LED pins and assign to CBUS
-  ledGrn.setPin(LED_GRN);
-  ledYlw.setPin(LED_YLW);
-  CBUS.setLEDs(ledGrn, ledYlw);
 
   // register our CBUS event handler, to receive event messages of learned events
   CBUS.setEventHandler(eventhandler);
@@ -280,24 +279,21 @@ void eventhandler(byte index, CANFrame *msg)
   Serial << F("> event handler: index = ") << index << F(", opcode = 0x") << _HEX(msg->data[0]) << endl;
 
   // read the value of the first event variable (EV) associated with this learned event
-
-  byte ev = 1;
-  int eeaddress = config.EE_EVENTS_START + (index * config.EE_BYTES_PER_EVENT) + 4 + (ev - 1);
-  byte evval = config.readEEPROM(eeaddress);
+  byte evval = config.getEventEVval(index, 1);
   Serial << F("> EV1 = ") << evval << endl;
 
   // set the LED according to the opcode of the received event and its EV
   if (msg->data[0] == OPC_ACON)
   {
-    if (evval == 1)
+    if (evval == 0)
+    {
+      Serial << F("> switching the LED on") << endl;
+      moduleLED.on();
+    }
+    else if (evval == 1)
     {
       Serial << F("> switching the LED to blink") << endl;
       moduleLED.blink();
-    }
-    else if (evval == 0)
-    {      
-      Serial << F("> switching the LED on") << endl;
-      moduleLED.on();
     }
   }
   else if (msg->data[0] == OPC_ACOF)
