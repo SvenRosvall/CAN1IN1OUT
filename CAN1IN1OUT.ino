@@ -134,7 +134,6 @@ void eventhandler(byte index, byte opc);
 //
 /// setup CBUS - runs once at power on from setup()
 //
-
 void setupCBUS()
 {
   // set config layout parameters
@@ -220,7 +219,7 @@ void setup()
 /// loop - runs forever
 //
 
-void loop() 
+void loop()
 {
   // do CBUS message, switch and LED processing
   CBUS.process();
@@ -306,8 +305,6 @@ void eventhandler(byte index, CANFrame *msg)
     Serial << F("> switching the LED off") << endl;
     moduleLED.off();
   }
-
-  return;
 }
 
 //
@@ -329,7 +326,7 @@ void printConfig(void)
 /// command interpreter for serial console input
 //
 
-void processSerialInput(void) 
+void processSerialInput(void)
 {
   byte uev = 0;
   char msgstr[32], dstr[32];
@@ -355,9 +352,7 @@ void processSerialInput(void)
 
         // EEPROM learned event data table
         Serial << F("> stored events ") << endl;
-
-        sprintf(msgstr, "  max events = %d, EVs per event = %d, bytes per event = %d", config.EE_MAX_EVENTS, config.EE_NUM_EVS, config.EE_BYTES_PER_EVENT);
-        Serial << msgstr << endl;
+        Serial << F("  max events = ") << config.EE_MAX_EVENTS << F(" EVs per event = ") << config.EE_NUM_EVS << F(" bytes per event = ") << config.EE_BYTES_PER_EVENT << endl;
 
         for (byte j = 0; j < config.EE_MAX_EVENTS; j++) {
           if (config.getEvTableEntry(j) != 0) {
