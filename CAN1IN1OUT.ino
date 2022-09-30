@@ -1,5 +1,12 @@
 // Modified by Sven Rosvall (M3777)
 /**************************************************************************************
+  Version 1d
+  Simplified setup.
+  Adjusted pins to match Martin's CBUS shield/carrier.
+*************************************************************************************/
+
+// Modified by Sven Rosvall (M3777)
+/**************************************************************************************
   Version 1c
   Simplified setup.
   Broke out functions from setup() and loop() functions to make them small.
@@ -60,12 +67,12 @@
 ///////////////////////////////////////////////////////////////////////////////////
 // Pin Use map UNO:
 // Digital pin 2 ()       Interupt CAN
-// Digital pin 3 (PWM)    Green SLiM LED
-// Digital pin 4 ()       Yellow FLiM LED
-// Digital pin 5 (PWM)    CBUS Switch
-// Digital pin 6 (PWM)    Not Used
-// Digital pin 7 ()       Module LED
-// Digital pin 8 ()       Module Switch
+// Digital pin 3 (PWM)    Not Used
+// Digital pin 4 ()       Green SLiM LED
+// Digital pin 5 (PWM)    Module LED
+// Digital pin 6 (PWM)    Module Switch
+// Digital pin 7 ()       Yellow FLiM LED
+// Digital pin 8 ()       FLiM Switch
 // Digital pin 9 (PWM)    Not Used
 // Digital pin 10 (PWM,SS) CS   CAN
 // Digital pin 11 (PWM,MOSI) SI CAN   ICSP-4
@@ -97,15 +104,15 @@ unsigned char mname[] = "1IN1OUT";
 
 // constants
 const byte VER_MAJ = 1;                  // code major version
-const char VER_MIN = 'c';                // code minor version
+const char VER_MIN = 'd';                // code minor version
 const byte VER_BETA = 0;                 // code beta sub-version
 const byte MODULE_ID = 99;               // CBUS module type
 
-const byte CAN_OSC_FREQ = 8000000uL;     // Oscillator frequency on the CAN2515 board
+const unsigned long CAN_OSC_FREQ = 8000000uL;     // Oscillator frequency on the CAN2515 board
 
-const byte LED_GRN = 3;                  // CBUS green SLiM LED pin
-const byte LED_YLW = 4;                  // CBUS yellow FLiM LED pin
-const byte SWITCH0 = 5;                  // CBUS push button switch pin
+const byte LED_GRN = 4;                  // CBUS green SLiM LED pin
+const byte LED_YLW = 7;                  // CBUS yellow FLiM LED pin
+const byte SWITCH0 = 8;                  // CBUS push button switch pin
 
 // CBUS pins
 const byte CAN_INT_PIN = 2;  // Only pin 2 and 3 support interrupts
@@ -115,8 +122,8 @@ const byte CAN_SO_PIN = 12;  // Cannot be changed
 const byte CAN_SCK_PIN = 13;  // Cannot be changed
 
 // CAN1IN1OUT module pins
-const byte MODULE_LED_PIN = 7;
-const byte MODULE_SWITCH_PIN = 8;
+const byte MODULE_LED_PIN = 5;
+const byte MODULE_SWITCH_PIN = 6;
 
 // CBUS objects
 CBUS2515 CBUS;                      // CBUS object
